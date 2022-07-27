@@ -9,9 +9,6 @@ param avdManagementPlaneLocation string
 @description('Optional. AVD workload subscription ID, multiple subscriptions scenario.')
 param avdWorkloadSubsId string
 
-@description('AVD Resource Group Name for the service objects.')
-param avdServiceObjectsRgName string
-
 @description('Resource Group name for the session hosts.')
 param avdComputeObjectsRgName string
 
