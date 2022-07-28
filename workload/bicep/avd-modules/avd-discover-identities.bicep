@@ -1,58 +1,53 @@
-
 @description('Required. Location where to deploy AVD management plane (Default: eastus2)')
 param avdManagementPlaneLocation string
 
-//Discover Tenant AAD Roles before attempting to creat them
-/*module DiscoverExistingRoles '../../../carml/1.2.0/Microsoft.Resources/deploymentScripts/deploy.bicep' = {
-  scope: resourceGroup('${avdWorkloadSubsId}', '${avdComputeObjectsRgName}')
-  name: 'runPowerShellInlineWithOutput'
-  params: {
-    name: 'discoverExistingRoles'
-    location: avdManagementPlaneLocation
-    kind: 'AzurePowerShell'
-    azPowerShellVersion: '6.4'
-    scriptContent: ''' 
-    $role = Get-AzRoleDefinition -Name 'StartVMonConnect-AVD'
-    if ($role) 
-    {
-        $roleExists = $true
-    } 
-    else 
-    {
-        $roleExists = $false
-    }
-    $DeploymentScriptsOutputs = @{}
-    $DeploymentScriptOutputs['roleExists'] = $roleExists
-    '''    
-    timeout: 'PT1H'
-    cleanupPreference: 'OnSuccess'
-    retentionInterval: 'P1D'
-  }
-}*/
+@description('Required. Location where to deploy AVD management plane (Default: eastus2)')
+param avdWorkloadSubscription string
 
-resource DiscoverExistingRoles 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+
+resource discoverExistingRoles 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'discoverExistingRoles'
   location: avdManagementPlaneLocation
   kind: 'AzurePowerShell'
   properties: {
+    arguments: '-subId \'${avdWorkloadSubscription}\''
     azPowerShellVersion: '6.4'
-    scriptContent: ''' 
+    scriptContent: '''
+    param($subId)
+    $roleScopeUpdated = $false
+    $roleExists = $false
     $role = Get-AzRoleDefinition -Name 'StartVMonConnect-AVD'
-    if ($role) 
-    {
-        $roleExists = $true
-    } 
-    else 
-    {
-        $roleExists = $false
+    if ($role) {
+      $roleExists = $true
+      if ($role.IsCustom)
+      {
+        if ($role.AssignableScopes -inotcontains "/subscriptions/$subid") {
+          $newScope = $role.AssignableScopes
+          $newScope += "/subscriptions/$subId"
+          $strNewScope = $newScope -join ","
+          $role.AssignableScopes.Add("/subscriptions/$subId")
+          set-AzRoleDefinition -Role $role
+          $roleScopeUpdated = $true
+          $output = "Role assignable scope updated. New scope: $strNewscope"
+        } else {
+          $output = "subscription $subId is already included in the role assignable scope"
+        }
+      } else {
+        $output = "The role '$roleName' is not a custom role."
+      }
+    } else {
+      $output = "Cannot find the role definition for '$roleName'."
     }
+    Write-Output $output
     $DeploymentScriptsOutputs = @{}
     $DeploymentScriptOutputs['roleExists'] = $roleExists
-    '''  
+    $DeploymentScriptOutputs['roleScopeUpdated'] = $roleScopeUpdated
+    $DeploymentScriptOutputs['outputText'] = $output
+    '''
     retentionInterval: 'P1D'
     timeout: 'PT1H'
     cleanupPreference: 'OnSuccess'
   }
 }
 
-output scriptOutputs object = DiscoverExistingRoles.properties.outputs
+output roleExists bool = discoverExistingRoles.properties.outputs.roleExists

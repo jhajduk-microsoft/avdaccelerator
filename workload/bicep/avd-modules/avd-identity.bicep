@@ -54,7 +54,7 @@ module fslogixManagedIdentity '../../../carml/1.2.0/Microsoft.ManagedIdentity/us
 }
 
 // RBAC Roles.
-module startVMonConnectRole '../../../carml/1.2.0/Microsoft.Authorization/roleDefinitions/subscription/deploy.bicep' = if (createStartVmOnConnectCustomRole) {
+module startVMonConnectRole '../../../carml/1.2.0/Microsoft.Authorization/roleDefinitions/subscription/deploy.bicep' = if (createStartVmOnConnectCustomRole && !roleExists) {
   scope: subscription(avdWorkloadSubsId)
   name: 'Start-VM-on-Connect-Role-${time}'
   params: {
@@ -85,6 +85,7 @@ module startVMonConnectRoleAssign '../../../carml/1.2.0/Microsoft.Authorization/
     startVMonConnectRole
   ]
 }
+
 // FSLogix.
 module fslogixRoleAssign '../../../carml/1.2.0/Microsoft.Authorization/roleAssignments/resourceGroup/deploy.bicep' = if (avdDeploySessionHosts) {
   name: 'fslogix-UserAIdentity-RoleAssign-${time}'

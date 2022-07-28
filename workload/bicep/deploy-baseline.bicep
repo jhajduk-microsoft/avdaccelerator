@@ -507,22 +507,17 @@ module avdWorkSpace '../../carml/1.2.0/Microsoft.DesktopVirtualization/workspace
         avdHostPoolandAppGroups
     ]
 }
-//Discover Tenant AAD Roles before attempting to creat them
-resource runPowerShellInlineWithOutput 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-    scope: resourceGroup('${}')
-    location: avdManagementPlaneLocation
-    name: 'runPowerShellInlineWithOutput'
-    kind: 'AzurePowerShell'
-    properties: {
-      forceUpdateTag: time
-      azPowerShellVersion: '6.4'
-      scriptContent: loadTextContent('../scripts/Discover-Existing-Roles.ps1')      
-      timeout: 'PT1H'
-      cleanupPreference: 'OnSuccess'
-      retentionInterval: 'P1D'
+
+//Discover any Existing RBAC Roles
+module discoverExistingRBACRoles 'avd-modules/avd-discover-identities.bicep' = {
+    scope: resourceGroup('${avdWorkloadSubsId}', '${avdStorageObjectsRgName}')
+    name: 'discoverExistingRBACRoles'
+    params: {
+      avdManagementPlaneLocation: avdManagementPlaneLocation
+      avdWorkloadSubscription: avdWorkloadSubsId
     }
   }
-  
+
 // Identity: managed identities and role assignments.
 module deployAvdManagedIdentitiesRoleAssign 'avd-modules/avd-identity.bicep' = if (createAvdFslogixDeployment) {
     name: 'Create-Managed-ID-RoleAssign-${time}'
@@ -531,7 +526,6 @@ module deployAvdManagedIdentitiesRoleAssign 'avd-modules/avd-identity.bicep' = i
         avdDeploySessionHosts: avdDeploySessionHosts
         avdEnterpriseAppObjectId: avdEnterpriseAppObjectId
         avdManagementPlaneLocation: avdSessionHostLocation
-        avdServiceObjectsRgName: avdServiceObjectsRgName
         avdStorageObjectsRgName: avdStorageObjectsRgName
         avdWorkloadSubsId: avdWorkloadSubsId
         createStartVmOnConnectCustomRole: createStartVmOnConnectCustomRole
