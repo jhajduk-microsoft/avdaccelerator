@@ -36,6 +36,9 @@ param storageAccountContributorRoleId string
 @description('Optional. Deploy Fslogix setup. (Default: true)')
 param createAvdFslogixDeployment bool
 
+@description('Passed in from main file. Boolean value that determines whether the VM on Connect role exists or not')
+param roleExists bool
+
 @description('Do not modify, used to set unique value for resource deployment.')
 param time string = utcNow()
 
